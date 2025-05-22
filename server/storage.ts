@@ -4,6 +4,8 @@ import {
   subjects, Subject, InsertSubject,
   CardWithReview
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, lte, gte, count, avg, desc } from "drizzle-orm";
 
 // Storage interface
 export interface IStorage {
@@ -36,57 +38,50 @@ export interface IStorage {
   getFamiliarityDistribution(): Promise<{ level: number; count: number }[]>;
 }
 
-export class MemStorage implements IStorage {
-  private cards: Map<number, Card>;
-  private reviews: Map<number, Review>;
-  private subjects: Map<number, Subject>;
-  private cardIdCounter: number;
-  private reviewIdCounter: number;
-  private subjectIdCounter: number;
-
-  constructor() {
-    this.cards = new Map();
-    this.reviews = new Map();
-    this.subjects = new Map();
-    this.cardIdCounter = 1;
-    this.reviewIdCounter = 1;
-    this.subjectIdCounter = 1;
-    
-    // Add default subjects
+export class DatabaseStorage implements IStorage {
+  async initializeDefaultSubjects() {
     const defaultSubjects = [
       "作業系統", "機器學習", "歷史", "物理", "生物", 
       "程式開發", "線性代數", "計算機組織", "語言", 
       "資料結構與演算法", "離散數學"
     ];
     
-    defaultSubjects.forEach(name => {
-      this.createSubject({ name });
-    });
+    for (const name of defaultSubjects) {
+      await this.createSubject({ name });
+    }
   }
 
   // Card operations
   async getAllCards(): Promise<CardWithReview[]> {
-    const allCards = Array.from(this.cards.values());
+    const allCards = await db.select().from(cards);
     
-    return allCards.map(card => {
-      const cardReviews = Array.from(this.reviews.values())
-        .filter(review => review.cardId === card.id)
-        .sort((a, b) => new Date(b.reviewDate).getTime() - new Date(a.reviewDate).getTime());
+    const cardsWithReviews: CardWithReview[] = [];
+    
+    for (const card of allCards) {
+      const cardReviews = await db
+        .select()
+        .from(reviews)
+        .where(eq(reviews.cardId, card.id))
+        .orderBy(desc(reviews.reviewDate));
       
-      return {
+      cardsWithReviews.push({
         ...card,
         lastReview: cardReviews.length > 0 ? cardReviews[0] : undefined
-      };
-    });
+      });
+    }
+    
+    return cardsWithReviews;
   }
 
   async getCardById(id: number): Promise<CardWithReview | undefined> {
-    const card = this.cards.get(id);
+    const [card] = await db.select().from(cards).where(eq(cards.id, id));
     if (!card) return undefined;
     
-    const cardReviews = Array.from(this.reviews.values())
-      .filter(review => review.cardId === id)
-      .sort((a, b) => new Date(b.reviewDate).getTime() - new Date(a.reviewDate).getTime());
+    const cardReviews = await db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.cardId, id))
+      .orderBy(desc(reviews.reviewDate));
     
     return {
       ...card,
@@ -95,85 +90,87 @@ export class MemStorage implements IStorage {
   }
 
   async createCard(card: InsertCard): Promise<Card> {
-    const id = this.cardIdCounter++;
-    const createdAt = new Date();
-    const newCard: Card = { ...card, id, createdAt };
-    this.cards.set(id, newCard);
+    const [newCard] = await db
+      .insert(cards)
+      .values(card)
+      .returning();
     return newCard;
   }
 
   async updateCard(id: number, card: Partial<InsertCard>): Promise<Card | undefined> {
-    const existingCard = this.cards.get(id);
-    if (!existingCard) return undefined;
-
-    const updatedCard = { ...existingCard, ...card };
-    this.cards.set(id, updatedCard);
-    return updatedCard;
+    const [updatedCard] = await db
+      .update(cards)
+      .set(card)
+      .where(eq(cards.id, id))
+      .returning();
+    
+    return updatedCard || undefined;
   }
 
   async deleteCard(id: number): Promise<boolean> {
-    if (!this.cards.has(id)) return false;
+    // Delete all reviews for this card first
+    await db.delete(reviews).where(eq(reviews.cardId, id));
     
-    // Delete all reviews for this card
-    Array.from(this.reviews.entries())
-      .filter(([_, review]) => review.cardId === id)
-      .forEach(([reviewId]) => this.reviews.delete(reviewId));
-    
-    return this.cards.delete(id);
+    // Delete the card
+    const result = await db.delete(cards).where(eq(cards.id, id));
+    return result.rowCount > 0;
   }
 
   // Review operations
   async getReviewsByCardId(cardId: number): Promise<Review[]> {
-    return Array.from(this.reviews.values())
-      .filter(review => review.cardId === cardId)
-      .sort((a, b) => new Date(b.reviewDate).getTime() - new Date(a.reviewDate).getTime());
+    return await db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.cardId, cardId))
+      .orderBy(desc(reviews.reviewDate));
   }
 
   async createReview(review: InsertReview): Promise<Review> {
-    const id = this.reviewIdCounter++;
-    const newReview: Review = { ...review, id };
-    this.reviews.set(id, newReview);
+    const [newReview] = await db
+      .insert(reviews)
+      .values(review)
+      .returning();
     return newReview;
   }
 
   async getCardsForReview(date: Date): Promise<CardWithReview[]> {
-    const today = new Date(date);
-    today.setHours(0, 0, 0, 0);
+    const today = date.toISOString().split('T')[0];
     
     const cardsWithReviews = await this.getAllCards();
     
     return cardsWithReviews.filter(card => {
       if (!card.lastReview) return true; // Cards that have never been reviewed
       
-      const nextReviewDate = new Date(card.lastReview.nextReviewDate);
-      nextReviewDate.setHours(0, 0, 0, 0);
-      
-      return nextReviewDate.getTime() <= today.getTime();
+      return card.lastReview.nextReviewDate <= today;
     });
   }
 
   // Subject operations
   async getAllSubjects(): Promise<Subject[]> {
-    return Array.from(this.subjects.values());
+    return await db.select().from(subjects);
   }
 
   async createSubject(subject: InsertSubject): Promise<Subject> {
     // Check if subject already exists
-    const existingSubject = Array.from(this.subjects.values())
-      .find(s => s.name.toLowerCase() === subject.name.toLowerCase());
+    const existingSubjects = await db
+      .select()
+      .from(subjects)
+      .where(eq(subjects.name, subject.name));
     
-    if (existingSubject) {
-      return existingSubject;
+    if (existingSubjects.length > 0) {
+      return existingSubjects[0];
     }
     
-    const id = this.subjectIdCounter++;
-    const newSubject: Subject = { ...subject, id };
-    this.subjects.set(id, newSubject);
+    const [newSubject] = await db
+      .insert(subjects)
+      .values(subject)
+      .returning();
     return newSubject;
   }
 
   async deleteSubject(id: number): Promise<boolean> {
-    return this.subjects.delete(id);
+    const result = await db.delete(subjects).where(eq(subjects.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   // Statistics
@@ -184,20 +181,23 @@ export class MemStorage implements IStorage {
     dueSoon: number;
     avgFamiliarity: number;
   }> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const oneWeekFromToday = new Date(today);
+    const today = new Date().toISOString().split('T')[0];
+    const oneWeekFromToday = new Date();
     oneWeekFromToday.setDate(oneWeekFromToday.getDate() + 7);
+    const weekFromTodayStr = oneWeekFromToday.toISOString().split('T')[0];
     
-    const cardsToReview = await this.getCardsForReview(today);
+    // Get total cards count
+    const totalCardsResult = await db.select({ count: count() }).from(cards);
+    const totalCards = totalCardsResult[0]?.count || 0;
+    
+    // Get cards to review today
+    const cardsToReview = await this.getCardsForReview(new Date());
     
     // Cards reviewed today
-    const todayReviews = Array.from(this.reviews.values()).filter(review => {
-      const reviewDate = new Date(review.reviewDate);
-      reviewDate.setHours(0, 0, 0, 0);
-      return reviewDate.getTime() === today.getTime();
-    });
+    const todayReviews = await db
+      .select()
+      .from(reviews)
+      .where(eq(reviews.reviewDate, today));
     
     // Get unique card IDs reviewed today
     const reviewedCardIdsToday = new Set(todayReviews.map(review => review.cardId));
@@ -206,18 +206,16 @@ export class MemStorage implements IStorage {
     const cardsDueSoon = (await this.getAllCards()).filter(card => {
       if (!card.lastReview) return false;
       
-      const nextReviewDate = new Date(card.lastReview.nextReviewDate);
-      nextReviewDate.setHours(0, 0, 0, 0);
-      
-      return nextReviewDate.getTime() > today.getTime() && 
-             nextReviewDate.getTime() <= oneWeekFromToday.getTime();
+      return card.lastReview.nextReviewDate > today && 
+             card.lastReview.nextReviewDate <= weekFromTodayStr;
     });
     
     // Calculate average familiarity
+    const allCards = await this.getAllCards();
     let totalFamiliarity = 0;
     let familiarityCount = 0;
     
-    (await this.getAllCards()).forEach(card => {
+    allCards.forEach(card => {
       if (card.lastReview) {
         totalFamiliarity += card.lastReview.familiarityScore;
         familiarityCount++;
@@ -229,7 +227,7 @@ export class MemStorage implements IStorage {
       : 0;
     
     return {
-      totalCards: this.cards.size,
+      totalCards,
       cardsToReviewToday: cardsToReview.length,
       completedToday: reviewedCardIdsToday.size,
       dueSoon: cardsDueSoon.length,
@@ -238,17 +236,20 @@ export class MemStorage implements IStorage {
   }
 
   async getSubjectDistribution(): Promise<{ subject: string; count: number }[]> {
-    const subjects = await this.getAllSubjects();
-    const distribution = subjects.map(subject => {
-      const count = Array.from(this.cards.values())
-        .filter(card => card.subject === subject.name)
-        .length;
+    const subjectsList = await this.getAllSubjects();
+    const distribution = [];
+    
+    for (const subject of subjectsList) {
+      const cardCount = await db
+        .select({ count: count() })
+        .from(cards)
+        .where(eq(cards.subject, subject.name));
       
-      return {
+      distribution.push({
         subject: subject.name,
-        count
-      };
-    });
+        count: cardCount[0]?.count || 0
+      });
+    }
     
     return distribution;
   }
@@ -277,4 +278,9 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+const databaseStorage = new DatabaseStorage();
+
+// Initialize default subjects when the storage is created
+databaseStorage.initializeDefaultSubjects().catch(console.error);
+
+export const storage = databaseStorage;
