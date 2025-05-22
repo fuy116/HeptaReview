@@ -78,14 +78,14 @@ export default function ReviewHistoryModal({ isOpen, onClose, card }: ReviewHist
             </div>
           ) : (
             <div className="space-y-4">
-              {reviewHistory.map((review: any, index: number) => (
-                <Card key={index} className="border-l-4 border-l-blue-500">
+              {(reviewHistory as any[]).map((review: any, index: number) => (
+                <Card key={review.id || index} className="border-l-4 border-l-blue-500">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center text-sm text-gray-600">
                           <CalendarIcon className="h-4 w-4 mr-1" />
-                          {review.reviewDate}
+                          {review.reviewDate || '未知日期'}
                         </div>
                         {review.reviewTimeMinutes && (
                           <div className="flex items-center text-sm text-gray-600">
@@ -94,10 +94,10 @@ export default function ReviewHistoryModal({ isOpen, onClose, card }: ReviewHist
                           </div>
                         )}
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${getFamiliarityColor(review.familiarityScore)}`}>
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${getFamiliarityColor(review.familiarityScore || 1)}`}>
                         <div className="flex items-center">
                           <StarIcon className="h-4 w-4 mr-1" />
-                          {review.familiarityScore}/5 {getFamiliarityText(review.familiarityScore)}
+                          {review.familiarityScore || 1}/5 {getFamiliarityText(review.familiarityScore || 1)}
                         </div>
                       </div>
                     </div>
@@ -108,6 +108,11 @@ export default function ReviewHistoryModal({ isOpen, onClose, card }: ReviewHist
                         <p className="text-sm text-gray-600 leading-relaxed">{review.reviewNotes}</p>
                       </div>
                     )}
+                    
+                    {/* Debug info - temporary */}
+                    <div className="mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-700">
+                      Debug: {JSON.stringify(review)}
+                    </div>
                   </CardContent>
                 </Card>
               ))}

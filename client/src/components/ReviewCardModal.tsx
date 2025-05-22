@@ -63,11 +63,16 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
     }
   });
 
-  const handleReview = (familiarityScore: number) => {
+  const handleRatingSelect = (familiarityScore: number) => {
     setSelectedRating(familiarityScore);
+  };
+
+  const handleSubmitReview = () => {
+    if (selectedRating === null) return;
+    
     const reviewTimeMinutes = reviewTime ? parseInt(reviewTime) : undefined;
     createReviewMutation.mutate({ 
-      familiarityScore, 
+      familiarityScore: selectedRating, 
       reviewTimeMinutes,
       reviewNotes: reviewNotes.trim() || undefined
     });
@@ -146,7 +151,7 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
                 key={rating}
                 type="button"
                 className={getFamiliarityButtonStyle(rating)}
-                onClick={() => handleReview(rating)}
+                onClick={() => handleRatingSelect(rating)}
                 disabled={createReviewMutation.isPending}
               >
                 <div className="text-center">
@@ -201,15 +206,14 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
             variant="outline" 
             onClick={handleClose}
           >
-            取消
+            稍後複習
           </Button>
           <Button 
             type="button" 
-            variant="outline"
-            onClick={handleClose}
-            disabled={createReviewMutation.isPending}
+            onClick={handleSubmitReview}
+            disabled={selectedRating === null || createReviewMutation.isPending}
           >
-            稍後複習
+            {createReviewMutation.isPending ? "處理中..." : "完成複習"}
           </Button>
         </DialogFooter>
       </DialogContent>
