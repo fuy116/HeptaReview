@@ -7,10 +7,8 @@ interface SubjectDistributionProps {
 }
 
 export default function SubjectDistribution({ distribution, isLoading }: SubjectDistributionProps) {
-  // Find the maximum count to calculate percentage
-  const maxCount = distribution.length > 0
-    ? Math.max(...distribution.map(item => item.count))
-    : 0;
+  // Calculate total cards across all subjects
+  const totalCards = distribution.reduce((sum, item) => sum + item.count, 0);
 
   // Define colors for different subjects
   const subjectColors = [
@@ -43,25 +41,33 @@ export default function SubjectDistribution({ distribution, isLoading }: Subject
               </div>
             ))}
           </div>
+        ) : totalCards === 0 ? (
+          <div className="text-center text-gray-500 py-4">
+            尚無卡片資料
+          </div>
         ) : (
           <div className="space-y-3">
-            {distribution.map((item, index) => {
-              const percentage = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
-              const colorClass = subjectColors[index % subjectColors.length];
-              
-              return (
-                <div key={item.subject} className="flex items-center">
-                  <span className="text-sm text-gray-700 w-32 truncate">{item.subject}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2 mx-2">
-                    <div 
-                      className={`${colorClass} h-2 rounded-full transition-all duration-300`} 
-                      style={{ width: `${percentage}%` }}
-                    ></div>
+            {distribution
+              .filter(item => item.count > 0)
+              .map((item, index) => {
+                const percentage = (item.count / totalCards) * 100;
+                const colorClass = subjectColors[index % subjectColors.length];
+                
+                return (
+                  <div key={item.subject} className="flex items-center">
+                    <span className="text-sm text-gray-700 w-32 truncate">{item.subject}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-2 mx-2">
+                      <div 
+                        className={`${colorClass} h-2 rounded-full transition-all duration-300`} 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm text-gray-500 w-24 text-right">
+                      {item.count} 張 ({percentage.toFixed(1)}%)
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-500 w-20 text-right">{item.count} 張卡片</span>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         )}
       </CardContent>

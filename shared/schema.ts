@@ -19,6 +19,8 @@ export const reviews = pgTable("reviews", {
   familiarityScore: integer("familiarity_score").notNull(),
   interval: integer("interval").notNull(),
   nextReviewDate: date("next_review_date").notNull(),
+  reviewTimeMinutes: integer("review_time_minutes"),
+  reviewNotes: text("review_notes"),
 });
 
 // Subject Schema
