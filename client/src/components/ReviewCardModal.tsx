@@ -9,7 +9,7 @@ import { CardWithReview } from "@shared/schema";
 import { ClockIcon, HistoryIcon } from "lucide-react";
 import { calculateNextReview } from "@/lib/spaced-repetition";
 import { useState } from "react";
-import { format } from "date-fns";
+import { Label } from "@/components/ui/label";
 
 interface ReviewCardModalProps {
   isOpen: boolean;
@@ -154,7 +154,7 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
                 {reviewHistory.map((review: any, index: number) => (
                   <div key={index} className="flex justify-between items-start text-sm p-2 bg-white rounded border">
                     <div>
-                      <p className="font-medium">{format(new Date(review.reviewDate), 'yyyy-MM-dd')}</p>
+                      <p className="font-medium">{review.reviewDate}</p>
                       <p className="text-gray-600">熟悉度: {review.familiarityScore}/5</p>
                       {review.reviewTimeMinutes && (
                         <p className="text-gray-600">用時: {review.reviewTimeMinutes} 分鐘</p>
@@ -197,27 +197,31 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Label htmlFor="reviewTime" className="text-sm font-medium text-gray-700">
                 複習時間（分鐘）
-              </label>
+              </Label>
               <Input
+                id="reviewTime"
                 type="number"
                 placeholder="請輸入複習所花費的時間"
                 value={reviewTime}
                 onChange={(e) => setReviewTime(e.target.value)}
                 min="1"
+                className="mt-1"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <Label htmlFor="reviewNotes" className="text-sm font-medium text-gray-700">
                 複習心得
-              </label>
+              </Label>
               <Textarea
+                id="reviewNotes"
                 placeholder="記錄本次複習的心得和狀況..."
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 rows={3}
+                className="mt-1"
               />
             </div>
           </div>
