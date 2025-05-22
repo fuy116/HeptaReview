@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { BookOpenIcon, PlusIcon } from "lucide-react";
+import { BookOpenIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,6 +15,8 @@ import { z } from "zod";
 export default function SubjectManagement() {
   const { toast } = useToast();
   const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState<{ id: number, name: string } | null>(null);
 
   const { data: subjects = [], isLoading } = useQuery({
     queryKey: ['/api/subjects'],
@@ -54,8 +56,42 @@ export default function SubjectManagement() {
     }
   });
 
+  const deleteSubjectMutation = useMutation({
+    mutationFn: async (subjectId: number) => {
+      await apiRequest('DELETE', `/api/subjects/${subjectId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats/subject-distribution'] });
+      toast({
+        title: "科目已刪除",
+        description: "科目已成功刪除",
+      });
+      setIsDeleteConfirmationOpen(false);
+      setSubjectToDelete(null);
+    },
+    onError: () => {
+      toast({
+        title: "刪除失敗",
+        description: "刪除科目時發生錯誤",
+        variant: "destructive",
+      });
+    }
+  });
+
   const onSubmit = (data: z.infer<typeof addSubjectSchema>) => {
     createSubjectMutation.mutate(data);
+  };
+
+  const handleDeleteClick = (subject: { id: number, name: string }) => {
+    setSubjectToDelete(subject);
+    setIsDeleteConfirmationOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (subjectToDelete) {
+      deleteSubjectMutation.mutate(subjectToDelete.id);
+    }
   };
 
   return (
@@ -92,6 +128,14 @@ export default function SubjectManagement() {
               <div key={subject.id} className="bg-white shadow rounded-lg border border-gray-200 p-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">{subject.name}</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-900 hover:bg-red-50"
+                    onClick={() => handleDeleteClick(subject)}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -99,6 +143,7 @@ export default function SubjectManagement() {
         )}
       </div>
 
+      {/* Add Subject Modal */}
       <Dialog open={isAddSubjectModalOpen} onOpenChange={setIsAddSubjectModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -140,6 +185,43 @@ export default function SubjectManagement() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteConfirmationOpen} onOpenChange={setIsDeleteConfirmationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認刪除</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-500">
+              確定要刪除科目「{subjectToDelete?.name}」嗎？此操作無法撤銷。
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              注意：刪除科目不會刪除關聯的卡片，但卡片將失去科目關聯。
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteConfirmationOpen(false);
+                setSubjectToDelete(null);
+              }}
+            >
+              取消
+            </Button>
+            <Button 
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteSubjectMutation.isPending}
+            >
+              {deleteSubjectMutation.isPending ? "刪除中..." : "確認刪除"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </main>
