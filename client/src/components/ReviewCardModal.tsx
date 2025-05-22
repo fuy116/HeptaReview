@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { ClockIcon, HistoryIcon } from "lucide-react";
 import { calculateNextReview } from "@/lib/spaced-repetition";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
+import ReviewHistoryModal from "./ReviewHistoryModal";
 
 interface ReviewCardModalProps {
   isOpen: boolean;
@@ -22,13 +23,7 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [reviewTime, setReviewTime] = useState<string>("");
   const [reviewNotes, setReviewNotes] = useState<string>("");
-  const [showHistory, setShowHistory] = useState(false);
-
-  // Get review history for this card
-  const { data: reviewHistory = [] } = useQuery({
-    queryKey: ['/api/cards', card.id, 'reviews'],
-    enabled: isOpen && showHistory,
-  });
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const createReviewMutation = useMutation({
     mutationFn: async (data: { familiarityScore: number; reviewTimeMinutes?: number; reviewNotes?: string }) => {
@@ -82,7 +77,6 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
     setSelectedRating(null);
     setReviewTime("");
     setReviewNotes("");
-    setShowHistory(false);
   };
 
   const handleClose = () => {
@@ -131,10 +125,10 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowHistory(!showHistory)}
+              onClick={() => setShowHistoryModal(true)}
             >
               <HistoryIcon className="h-4 w-4 mr-1" />
-              歷史記錄
+              查看歷史
             </Button>
           </div>
         </DialogHeader>
@@ -143,32 +137,6 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
           <p className="text-sm text-gray-500">「{card.cardName}」科目：{card.subject}</p>
           {card.note && <p className="text-xs text-gray-400 mt-1">備註：{card.note}</p>}
         </div>
-
-        {showHistory && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">複習歷史</h4>
-            {reviewHistory.length === 0 ? (
-              <p className="text-sm text-gray-500">尚無複習記錄</p>
-            ) : (
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {reviewHistory.map((review: any, index: number) => (
-                  <div key={index} className="flex justify-between items-start text-sm p-2 bg-white rounded border">
-                    <div>
-                      <p className="font-medium">{review.reviewDate}</p>
-                      <p className="text-gray-600">熟悉度: {review.familiarityScore}/5</p>
-                      {review.reviewTimeMinutes && (
-                        <p className="text-gray-600">用時: {review.reviewTimeMinutes} 分鐘</p>
-                      )}
-                      {review.reviewNotes && (
-                        <p className="text-gray-600 mt-1">{review.reviewNotes}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
         
         <div className="mt-6">
           <h4 className="text-sm font-medium text-gray-700 mb-2">複習後熟悉度評價</h4>
@@ -245,6 +213,12 @@ export default function ReviewCardModal({ isOpen, onClose, card }: ReviewCardMod
           </Button>
         </DialogFooter>
       </DialogContent>
+      
+      <ReviewHistoryModal 
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        card={card}
+      />
     </Dialog>
   );
 }
