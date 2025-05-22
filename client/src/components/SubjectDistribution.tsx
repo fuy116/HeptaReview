@@ -12,6 +12,21 @@ export default function SubjectDistribution({ distribution, isLoading }: Subject
     ? Math.max(...distribution.map(item => item.count))
     : 0;
 
+  // Define colors for different subjects
+  const subjectColors = [
+    'bg-blue-500',
+    'bg-green-500', 
+    'bg-purple-500',
+    'bg-orange-500',
+    'bg-pink-500',
+    'bg-indigo-500',
+    'bg-yellow-500',
+    'bg-red-500',
+    'bg-teal-500',
+    'bg-cyan-500',
+    'bg-lime-500',
+  ];
+
   return (
     <Card className="bg-white shadow rounded-lg border border-gray-100">
       <CardHeader className="p-4 border-b border-gray-100">
@@ -30,15 +45,16 @@ export default function SubjectDistribution({ distribution, isLoading }: Subject
           </div>
         ) : (
           <div className="space-y-3">
-            {distribution.map((item) => {
+            {distribution.map((item, index) => {
               const percentage = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+              const colorClass = subjectColors[index % subjectColors.length];
               
               return (
                 <div key={item.subject} className="flex items-center">
-                  <span className="text-sm text-gray-700 w-32">{item.subject}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-2">
+                  <span className="text-sm text-gray-700 w-32 truncate">{item.subject}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-2 mx-2">
                     <div 
-                      className="bg-primary-500 h-2 rounded-full" 
+                      className={`${colorClass} h-2 rounded-full transition-all duration-300`} 
                       style={{ width: `${percentage}%` }}
                     ></div>
                   </div>

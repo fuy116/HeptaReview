@@ -61,12 +61,8 @@ export default function SubjectManagement() {
       await apiRequest('DELETE', `/api/subjects/${subjectId}`);
     },
     onSuccess: () => {
-      // Invalidate all related queries
-      queryClient.invalidateQueries({ queryKey: ['/api/subjects'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stats/subject-distribution'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-      queryClient.refetchQueries({ queryKey: ['/api/subjects'] });
-      queryClient.refetchQueries({ queryKey: ['/api/stats/subject-distribution'] });
+      // Force refetch all related queries immediately
+      queryClient.invalidateQueries();
       toast({
         title: "科目已刪除",
         description: "科目已成功刪除",
