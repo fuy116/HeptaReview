@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardWithReview } from "@shared/schema";
-import { FileType2, PencilIcon, TrashIcon, SearchIcon } from "lucide-react";
+import { FileType2, PencilIcon, TrashIcon, SearchIcon, HistoryIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import ReviewCardModal from "@/components/ReviewCardModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useLocation } from "wouter";
 
 interface CardManagementProps {
   onAddCard: () => void;
@@ -29,6 +30,7 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CardWithReview | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [, navigate] = useLocation();
 
   const { data: cards = [], isLoading: isCardsLoading } = useQuery({
     queryKey: ["/api/cards"],
@@ -212,7 +214,7 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
                   scope="col"
                   className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  動作
+ 
                 </th>
               </tr>
             </thead>
@@ -302,6 +304,15 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
                         onClick={() => handleReviewCard(card)}
                       >
                         <PencilIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-blue-600 hover:text-blue-900 mr-1"
+                        aria-label="查看紀錄"
+                        onClick={() => navigate(`/cards/${card.id}/history`)}
+                      >
+                        <HistoryIcon className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"

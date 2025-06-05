@@ -17,6 +17,7 @@ import { z } from "zod";
 import { insertSubjectSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import ReviewHistoryPage from "@/pages/ReviewHistoryPage";
 
 function App() {
   const [isAddCardModalOpen, setIsAddCardModalOpen] = useState(false);
@@ -88,6 +89,9 @@ function App() {
         </Route>
         <Route path="/subjects">
           <SubjectManagement />
+        </Route>
+        <Route path="/cards/:id/history">
+          <ReviewHistoryPage />
         </Route>
         <Route>
           <NotFound />
