@@ -45,6 +45,22 @@ export async function setupVite(app: Express, server: Server) {
     server: serverOptions,
     appType: "custom",
     plugins: [react()],
+    define: {
+      global: "globalThis",
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        define: {
+          global: "globalThis",
+        },
+      },
+    },
+    resolve: {
+      alias: {
+        ...viteConfig.resolve?.alias,
+        crypto: "crypto-browserify",
+      },
+    },
   });
 
   app.use(vite.middlewares);

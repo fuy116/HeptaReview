@@ -5,16 +5,12 @@ const { Pool } = require('pg');
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from "@shared/schema";
 
-console.log("DATABASE_URL (from db.ts) is:", process.env.DATABASE_URL);
-
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+// 如果沒有設置 DATABASE_URL，使用默認值
+const DATABASE_URL = process.env.DATABASE_URL || 'postgres://heptareview:heptareview@localhost:5433/heptareview';
+console.log("DATABASE_URL (from db.ts) is:", DATABASE_URL);
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: DATABASE_URL,
 });
 
 export const db = drizzle(pool, { schema });
