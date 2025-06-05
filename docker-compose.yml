@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14
+    container_name: learnpace-db
+    environment:
+      POSTGRES_USER: heptareview
+      POSTGRES_PASSWORD: heptareview
+      POSTGRES_DB: heptareview
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data: 

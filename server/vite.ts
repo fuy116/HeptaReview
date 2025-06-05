@@ -5,6 +5,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import react from "@vitejs/plugin-react";
 
 const viteLogger = createLogger();
 
@@ -22,8 +23,13 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true,
+    server: {
+      hmr: false,
+      watch: {
+        usePolling: true,
+      },
+    },
+    allowedHosts: ['localhost', '127.0.0.1'],
   };
 
   const vite = await createViteServer({
@@ -38,6 +44,7 @@ export async function setupVite(app: Express, server: Server) {
     },
     server: serverOptions,
     appType: "custom",
+    plugins: [react()],
   });
 
   app.use(vite.middlewares);
@@ -65,6 +72,8 @@ export async function setupVite(app: Express, server: Server) {
       next(e);
     }
   });
+
+  return vite;
 }
 
 export function serveStatic(app: Express) {

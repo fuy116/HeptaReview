@@ -31,6 +31,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      cache: "no-store",
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -45,13 +46,18 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      staleTime: 0,
+      gcTime: 0,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: false,
     },
     mutations: {
       retry: false,
+      onSettled: () => {
+        queryClient.invalidateQueries();
+      },
     },
   },
 });

@@ -40,6 +40,12 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async initializeDefaultSubjects() {
+    // 首先檢查是否已經有科目存在
+    const existingSubjects = await this.getAllSubjects();
+    if (existingSubjects.length > 0) {
+      return; // 如果已經有科目，就不初始化默認科目
+    }
+
     const defaultSubjects = [
       "作業系統", "機器學習", "歷史", "物理", "生物", 
       "程式開發", "線性代數", "計算機組織", "語言", 
@@ -170,7 +176,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSubject(id: number): Promise<boolean> {
     const result = await db.delete(subjects).where(eq(subjects.id, id));
-    return (result.rowCount || 0) > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Statistics

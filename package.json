@@ -1,5 +1,5 @@
 {
-  "name": "rest-express",
+  "name": "heptareview",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
@@ -47,6 +47,7 @@
     "cmdk": "^1.1.1",
     "connect-pg-simple": "^10.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.6.0",
@@ -73,7 +74,8 @@
     "wouter": "^3.7.0",
     "ws": "^8.18.0",
     "zod": "^3.25.20",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.2.4",
