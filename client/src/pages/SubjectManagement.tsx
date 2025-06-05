@@ -22,6 +22,8 @@ export default function SubjectManagement() {
     queryKey: ['/api/subjects'],
   });
 
+  const subjectList: { id: number, name: string }[] = Array.isArray(subjects) ? subjects : [];
+
   const addSubjectSchema = insertSubjectSchema.extend({
     name: z.string().min(1, "科目名稱不能為空"),
   });
@@ -101,10 +103,6 @@ export default function SubjectManagement() {
           <h1 className="text-xl font-semibold text-gray-900">
             <BookOpenIcon className="inline-block mr-2" size={20} /> 科目管理
           </h1>
-          
-          <Button onClick={() => setIsAddSubjectModalOpen(true)}>
-            <PlusIcon className="mr-1 h-4 w-4" /> 新增科目
-          </Button>
         </div>
         
         {isLoading ? (
@@ -114,7 +112,7 @@ export default function SubjectManagement() {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-1">正在加載...</h3>
           </div>
-        ) : subjects.length === 0 ? (
+        ) : subjectList.length === 0 ? (
           <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-8 text-center">
             <div className="text-gray-400 mb-3">
               <BookOpenIcon className="mx-auto h-12 w-12" />
@@ -124,7 +122,7 @@ export default function SubjectManagement() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {subjects.map((subject: { id: number, name: string }) => (
+            {subjectList.map((subject: { id: number, name: string }) => (
               <div key={subject.id} className="bg-white shadow rounded-lg border border-gray-200 p-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">{subject.name}</h3>
@@ -142,51 +140,6 @@ export default function SubjectManagement() {
           </div>
         )}
       </div>
-
-      {/* Add Subject Modal */}
-      <Dialog open={isAddSubjectModalOpen} onOpenChange={setIsAddSubjectModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>新增科目</DialogTitle>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>科目名稱</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="輸入科目名稱" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsAddSubjectModalOpen(false);
-                    form.reset();
-                  }}
-                >
-                  取消
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createSubjectMutation.isPending}
-                >
-                  {createSubjectMutation.isPending ? "新增中..." : "新增"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Modal */}
       <Dialog open={isDeleteConfirmationOpen} onOpenChange={setIsDeleteConfirmationOpen}>

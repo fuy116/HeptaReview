@@ -4,10 +4,26 @@ import { PlusIcon } from "lucide-react";
 
 interface HeaderProps {
   onAddCard: () => void;
+  onAddSubject?: () => void;
 }
 
-export default function Header({ onAddCard }: HeaderProps) {
+export default function Header({ onAddCard, onAddSubject }: HeaderProps) {
   const [location] = useLocation();
+
+  let actionButton = null;
+  if (location === "/cards") {
+    actionButton = (
+      <Button onClick={onAddCard}>
+        <PlusIcon className="h-4 w-4 mr-1" /> 新增卡片
+      </Button>
+    );
+  } else if (location === "/subjects" && onAddSubject) {
+    actionButton = (
+      <Button onClick={onAddSubject}>
+        <PlusIcon className="h-4 w-4 mr-1" /> 新增科目
+      </Button>
+    );
+  }
 
   return (
     <header className="bg-white border-b border-gray-200">
@@ -45,9 +61,7 @@ export default function Header({ onAddCard }: HeaderProps) {
             </nav>
           </div>
           <div>
-            <Button onClick={onAddCard}>
-              <PlusIcon className="h-4 w-4 mr-1" /> 新增卡片
-            </Button>
+            {actionButton}
           </div>
         </div>
       </div>

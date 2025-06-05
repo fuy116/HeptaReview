@@ -15,6 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import ReviewCardModal from "@/components/ReviewCardModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface CardManagementProps {
   onAddCard: () => void;
@@ -26,14 +27,20 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
   const [selectedSubject, setSelectedSubject] = useState("全部");
   const [selectedCard, setSelectedCard] = useState<CardWithReview | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CardWithReview | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: cards = [], isLoading: isCardsLoading } = useQuery({
     queryKey: ["/api/cards"],
   });
 
+  const cardList: CardWithReview[] = Array.isArray(cards) ? cards : [];
+
   const { data: subjects = [], isLoading: isSubjectsLoading } = useQuery({
     queryKey: ["/api/subjects"],
   });
+
+  const subjectList: { id: number; name: string }[] = Array.isArray(subjects) ? subjects : [];
 
   const deleteCardMutation = useMutation({
     mutationFn: async (cardId: number) => {
@@ -52,6 +59,8 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
         title: "卡片已刪除",
         description: "卡片已成功刪除",
       });
+      setIsDeleteDialogOpen(false);
+      setDeleteTarget(null);
     },
     onError: () => {
       toast({
@@ -62,9 +71,14 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
     },
   });
 
-  const handleDeleteCard = (cardId: number) => {
-    if (window.confirm("確定要刪除這張卡片嗎？此操作無法撤銷。")) {
-      deleteCardMutation.mutate(cardId);
+  const handleDeleteCard = (card: CardWithReview) => {
+    setDeleteTarget(card);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteCardMutation.mutate(deleteTarget.id);
     }
   };
 
@@ -79,7 +93,7 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
   };
 
   // Filter cards based on search term and selected subject
-  const filteredCards = cards.filter((card: CardWithReview) => {
+  const filteredCards = cardList.filter((card: CardWithReview) => {
     const matchesSearch =
       card.cardName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (card.note && card.note.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -142,7 +156,7 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="全部">全部</SelectItem>
-                  {subjects.map((subject: { id: number; name: string }) => (
+                  {subjectList.map((subject: { id: number; name: string }) => (
                     <SelectItem key={subject.id} value={subject.name}>
                       {subject.name}
                     </SelectItem>
@@ -293,7 +307,7 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
                         variant="ghost"
                         size="sm"
                         className="text-red-600 hover:text-red-900"
-                        onClick={() => handleDeleteCard(card.id)}
+                        onClick={() => handleDeleteCard(card)}
                       >
                         <TrashIcon className="h-4 w-4" />
                       </Button>
@@ -305,6 +319,43 @@ export default function CardManagement({ onAddCard }: CardManagementProps) {
           </table>
         </div>
       </div>
+
+      {/* 刪除卡片 Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>確認刪除</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-500">
+              確定要刪除卡片「{deleteTarget?.cardName}」嗎？此操作無法撤銷。
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              注意：刪除卡片會一併刪除所有複習紀錄，且無法復原。
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setDeleteTarget(null);
+              }}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteCardMutation.isPending}
+            >
+              {deleteCardMutation.isPending ? "刪除中..." : "確認刪除"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedCard && (
         <ReviewCardModal
