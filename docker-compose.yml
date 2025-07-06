@@ -1,9 +1,8 @@
-version: '3.8'
-
 services:
+  # 數據庫服務
   db:
     image: postgres:14
-    container_name: learnpace-db
+    container_name: heptareview-db
     environment:
       POSTGRES_USER: heptareview
       POSTGRES_PASSWORD: heptareview
@@ -12,6 +11,31 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - heptareview-network
+    restart: unless-stopped
+
+  # 應用服務 (前端 + 後端)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: heptareview-app
+    ports:
+      - "3001:5001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://heptareview:heptareview@db:5432/heptareview
+      - PORT=5001
+    depends_on:
+      - db
+    networks:
+      - heptareview-network
+    restart: unless-stopped
 
 volumes:
-  postgres_data: 
+  postgres_data:
+
+networks:
+  heptareview-network:
+    driver: bridge 
